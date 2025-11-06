@@ -1,4 +1,6 @@
 import asyncio
+import json
+import os
 from typing import Any
 
 from dotenv import load_dotenv
@@ -8,7 +10,9 @@ from pydantic_ai import Agent, RunContext
 from database import DatasourceConnection
 from incident_dependencies import IncidentDependencies
 
-_ = load_dotenv()
+load_dotenv()
+model_name = os.getenv("MODEL_NAME", "gemini-2.5-pro")
+
 
 class IncidentOutput(BaseModel):
     response_text: str = Field(description="Description of the incident status")
@@ -18,7 +22,7 @@ class IncidentOutput(BaseModel):
 
 
 incident_agent = Agent(
-    "gemini-2.5-pro",
+    model=model_name,
     deps_type=IncidentDependencies,
     output_type=IncidentOutput,
     system_prompt=(
@@ -33,10 +37,12 @@ async def add_incident_title(ctx: RunContext[IncidentDependencies]) -> str:
     incident_title = await ctx.deps.db.incident_title(id=ctx.deps.incident_id)
     return f"Incident title: {incident_title!r}."
 
+
 @incident_agent.system_prompt
 async def add_incident_description(ctx: RunContext[IncidentDependencies]) -> str:
     incident_description = await ctx.deps.db.incident_description(id=ctx.deps.incident_id)
     return f"Incident description: {incident_description!r}."
+
 
 @incident_agent.tool
 async def incident_metrics(ctx: RunContext[IncidentDependencies]) -> dict[str, Any]:
@@ -52,7 +58,7 @@ async def main() -> None:
         "There is sudden increase in support requests. What is going on with the system?",
         deps=deps,
     )
-    print(result.output)
+    print(json.dumps(result.output.model_dump(), indent=2))
     """
     Example result:
     response_text='There is major incident, operations team is working on it and relevant people are informed.'
@@ -60,6 +66,7 @@ async def main() -> None:
     emergency=True
     criticality=5
     """
+
 
 if __name__ == "__main__":
     asyncio.run(main())
