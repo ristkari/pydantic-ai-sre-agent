@@ -59,13 +59,6 @@ async def main() -> None:
         deps=deps,
     )
     print(json.dumps(result.output.model_dump(), indent=2))
-    """
-    Example result:
-    response_text='There is major incident, operations team is working on it and relevant people are informed.'
-    degradation=True
-    emergency=True
-    criticality=5
-    """
 
 
 if __name__ == "__main__":
